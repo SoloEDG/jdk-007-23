@@ -4,11 +4,20 @@ import { Pads, Keyboard } from "@/features/instruments";
 import { Timeline, TrackActions } from "@/features/arrangement";
 import { RecordControls, RecordingStatus } from "@/features/recorder";
 import { MixerPanel } from "@/features/mixer";
+import { GroovePanel, isGrooveOff } from "@/features/groove";
 export function App() {
   const s = useStudio();
   if (!s) return <div className="loading">正在打开夜航工作室…</div>;
   const v = s.view(),
-    locked = v.recorder.status !== "idle";
+    locked = v.recorder.status !== "idle",
+    auditioning = !!v.audition;
+  const grooveFor = (id: string) => {
+    const g =
+      v.audition?.trackId === id
+        ? v.audition.draft
+        : v.arrangement.tracks.find((t) => t.id === id)?.groove;
+    return g && !isGrooveOff(g) ? g : null;
+  };
   return (
     <div className="studio-shell">
       <aside className="rail">
@@ -74,7 +83,7 @@ export function App() {
             <TrackActions
               selected={v.selected}
               count={v.arrangement.tracks.length}
-              locked={locked}
+              locked={locked || auditioning}
               add={s.add}
               clear={s.clear}
               remove={s.remove}
@@ -85,7 +94,16 @@ export function App() {
               position={v.transport.position}
               beats={v.transport.beats}
               draft={v.recorder.draft}
+              grooveFor={grooveFor}
               select={s.select}
+            />
+            <GroovePanel
+              track={v.selected}
+              audition={v.audition}
+              locked={locked}
+              draft={s.grooveDraft}
+              confirm={s.grooveConfirm}
+              cancel={s.grooveCancel}
             />
             <div className="arrangement-footer">
               <span>
@@ -94,7 +112,7 @@ export function App() {
                   ? `已选择 ${v.selected.name}`
                   : "选择一条轨道开始演奏"}
               </span>
-              <span>4/4 拍 · 最多 8 条轨道</span>
+              <span>4/4 拍 · 最多 8 条轨道 · 虚线框为律动后实际位置</span>
             </div>
           </section>
           <MixerPanel

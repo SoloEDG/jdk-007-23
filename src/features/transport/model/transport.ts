@@ -18,8 +18,10 @@ export function createTransport() {
         running,
         absolute: abs,
         position: loopPosition(abs, beats),
+        frontier: cursor,
       };
     },
+    timeAt: (beat: number) => anchor + ((beat - offset) * 60) / bpm,
     start(now: number) {
       if (running) return;
       anchor = now;
@@ -50,11 +52,7 @@ export function createTransport() {
       const to = Math.min(ceiling, abs + (0.075 * bpm) / 60);
       if (to <= from) return null;
       cursor = to;
-      return {
-        from,
-        to,
-        timeAt: (beat: number) => anchor + ((beat - offset) * 60) / bpm,
-      };
+      return { from, to, timeAt: this.timeAt };
     },
   };
 }

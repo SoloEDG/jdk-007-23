@@ -1,10 +1,12 @@
-import type { Track, Note } from "@/shared/types";
+import type { Track, Note, GrooveParams } from "@/shared/types";
+import { processNote } from "@/features/groove";
 export function Timeline({
   tracks,
   selected,
   position,
   beats,
   draft,
+  grooveFor,
   select,
 }: {
   tracks: readonly Track[];
@@ -12,8 +14,13 @@ export function Timeline({
   position: number;
   beats: number;
   draft: readonly Note[];
+  grooveFor: (trackId: string) => GrooveParams | null;
   select: (id: string) => void;
 }) {
+  const rowTop = (track: Track, n: Note) =>
+    12 +
+    (track.instrument === "drums" ? n.pitch : (((72 - n.pitch) % 12) + 12) % 12) *
+      3;
   return (
     <div className="timeline-scroll">
       <div className="timeline" style={{ minWidth: 500 }}>
@@ -25,43 +32,62 @@ export function Timeline({
             ))}
           </div>
         </div>
-        {tracks.map((track, i) => (
-          <div
-            className={`lane ${selected === track.id ? "selected" : ""}`}
-            key={track.id}
-          >
-            <button className="lane-name" onClick={() => select(track.id)}>
-              <span style={{ color: track.color }}>0{i + 1}</span>
-              <strong>{track.name}</strong>
-              <small>
-                {track.instrument === "drums" ? "DRUM MACHINE" : "POLY SYNTH"}
-              </small>
-            </button>
+        {tracks.map((track, i) => {
+          const groove = grooveFor(track.id);
+          return (
             <div
-              className="lane-notes"
-              style={{ "--bars": beats / 4 } as React.CSSProperties}
+              className={`lane ${selected === track.id ? "selected" : ""}`}
+              key={track.id}
             >
-              {[...track.notes, ...(selected === track.id ? draft : [])].map(
-                (n) => (
-                  <span
-                    className={`note-block ${draft.includes(n) ? "draft" : ""}`}
-                    key={n.id}
-                    style={{
-                      left: `${(n.beat / beats) * 100}%`,
-                      width: `${Math.max(0.6, (Math.min(n.duration, beats - n.beat) / beats) * 100)}%`,
-                      top: `${12 + (track.instrument === "drums" ? n.pitch : (((72 - n.pitch) % 12) + 12) % 12) * 3}%`,
-                      background: track.color,
-                    }}
-                  />
-                ),
-              )}
-              <i
-                className="playhead"
-                style={{ left: `${(position / beats) * 100}%` }}
-              />
+              <button className="lane-name" onClick={() => select(track.id)}>
+                <span style={{ color: track.color }}>0{i + 1}</span>
+                <strong>{track.name}</strong>
+                <small>
+                  {track.instrument === "drums" ? "DRUM MACHINE" : "POLY SYNTH"}
+                </small>
+              </button>
+              <div
+                className="lane-notes"
+                style={{ "--bars": beats / 4 } as React.CSSProperties}
+              >
+                {[...track.notes, ...(selected === track.id ? draft : [])].map(
+                  (n) => (
+                    <span
+                      className={`note-block ${draft.includes(n) ? "draft" : ""}`}
+                      key={n.id}
+                      style={{
+                        left: `${(n.beat / beats) * 100}%`,
+                        width: `${Math.max(0.6, (Math.min(n.duration, beats - n.beat) / beats) * 100)}%`,
+                        top: `${rowTop(track, n)}%`,
+                        background: track.color,
+                      }}
+                    />
+                  ),
+                )}
+                {groove &&
+                  track.notes.map((n) => {
+                    const p = processNote(n, groove, beats);
+                    return (
+                      <span
+                        className="note-ghost"
+                        key={`${n.id}-g`}
+                        style={{
+                          left: `${(p.beat / beats) * 100}%`,
+                          width: `${Math.max(0.6, (Math.min(p.duration, beats - p.beat) / beats) * 100)}%`,
+                          top: `${rowTop(track, n)}%`,
+                          borderColor: track.color,
+                        }}
+                      />
+                    );
+                  })}
+                <i
+                  className="playhead"
+                  style={{ left: `${(position / beats) * 100}%` }}
+                />
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
         {tracks.length === 0 && (
           <div className="empty-arrangement">
             <span>♫</span>

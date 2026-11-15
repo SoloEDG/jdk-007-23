@@ -17,13 +17,18 @@ export function createEngine() {
     route(resolve: (id: string) => AudioNode) {
       destination = resolve;
     },
-    play(note: ScheduledNote, key?: string) {
-      if (!context || !destination) return;
+    play(note: ScheduledNote, key?: string): string | null {
+      if (!context || !destination) return null;
       for (const [id, v] of voices)
         if (v.end < context.currentTime) voices.delete(id);
       const id = crypto.randomUUID();
       voices.set(id, synthesize(context, destination(note.trackId), note));
       if (key && note.instrument === "keys") held.set(key, id);
+      return id;
+    },
+    stopVoice(id: string) {
+      voices.get(id)?.stop();
+      voices.delete(id);
     },
     release(key: string) {
       const id = held.get(key);

@@ -1,8 +1,31 @@
-import type { Session, Track, Note } from "@/shared/types";
+import type { Session, Track, Note, GrooveParams } from "@/shared/types";
+import { GROOVE_OFF } from "@/features/groove";
 const object = (x: unknown): x is Record<string, unknown> =>
   !!x && typeof x === "object" && !Array.isArray(x);
 const finite = (x: unknown, min: number, max: number): x is number =>
   typeof x === "number" && Number.isFinite(x) && x >= min && x <= max;
+// Sessions saved before the groove layer existed carry no params; they load
+// with processing off. Present params must be in range.
+function validateGroove(raw: unknown): GrooveParams {
+  if (raw === undefined) return { ...GROOVE_OFF };
+  if (
+    !object(raw) ||
+    !finite(raw.swing, 0, 1) ||
+    !finite(raw.accent, 0, 1) ||
+    !finite(raw.humanize, 0, 1) ||
+    !Number.isInteger(raw.seed) ||
+    (raw.seed as number) < 1 ||
+    (raw.seed as number) > 2147483647
+  )
+    throw new Error("律动参数无效");
+  const g = raw as unknown as GrooveParams;
+  return {
+    swing: g.swing,
+    accent: g.accent,
+    humanize: g.humanize,
+    seed: g.seed,
+  };
+}
 export function validateSession(raw: unknown): Session {
   if (
     !object(raw) ||
@@ -35,6 +58,7 @@ export function validateSession(raw: unknown): Session {
     )
       throw new Error("轨道数据无效");
     ids.add(t.id);
+    t.groove = validateGroove((value as Record<string, unknown>).groove);
     for (const n of t.notes as Note[]) {
       if (
         !object(n) ||

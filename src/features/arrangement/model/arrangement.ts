@@ -1,5 +1,6 @@
-import type { Track, Instrument, Note, Session } from "@/shared/types";
+import type { Track, Instrument, Note, Session, GrooveParams } from "@/shared/types";
 import { uid } from "@/shared/math";
+import { GROOVE_OFF } from "@/features/groove";
 import { validateSession } from "../lib/validation";
 export function createArrangement() {
   let tracks: Track[] = [],
@@ -36,6 +37,7 @@ export function createArrangement() {
         instrument,
         color: colors[tracks.length % colors.length],
         notes: [],
+        groove: { ...GROOVE_OFF },
       };
       tracks = [...tracks, t];
       selected = t.id;
@@ -49,6 +51,12 @@ export function createArrangement() {
       if (!tracks.some((t) => t.id === id)) throw new Error("录音目标已不存在");
       tracks = tracks.map((t) =>
         t.id === id ? { ...t, notes: structuredClone(notes) } : t,
+      );
+    },
+    setGroove(id: string, groove: GrooveParams) {
+      if (!tracks.some((t) => t.id === id)) throw new Error("轨道已不存在");
+      tracks = tracks.map((t) =>
+        t.id === id ? { ...t, groove: { ...groove } } : t,
       );
     },
     resizeLoop(beats: number) {

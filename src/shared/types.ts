@@ -6,12 +6,19 @@ export type Note = {
   duration: number;
   velocity: number;
 };
+export type GrooveParams = {
+  swing: number;
+  accent: number;
+  humanize: number;
+  seed: number;
+};
 export type Track = {
   id: string;
   name: string;
   instrument: Instrument;
   color: string;
   notes: Note[];
+  groove: GrooveParams;
 };
 export type Channel = { volume: number; muted: boolean };
 export type Session = {
